@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+
+require 'zabel'
+    
+if ARGV[0] == Zabel::STAGE_CLEAN
+    Zabel::zabel_clean
+elsif ARGV[0] == Zabel::STAGE_EXTRACT
+    Zabel::zabel_extract
+elsif ARGV[0] == Zabel::STAGE_PRINTENV
+    Zabel::zabel_printenv
+elsif ARGV[0] == Zabel::STAGE_PRE
+    Zabel::zabel_pre(ARGV[1..-1])
+elsif ARGV[0] == Zabel::STAGE_POST
+    Zabel::zabel_post(ARGV[1..-1])
+elsif ARGV[0] and ARGV[0].include? "xcodebuild"
+    total_start_time = Time.now
+
+    Zabel::zabel_pre(ARGV)
+
+    build_start_time = Time.now
+    raise unless system(*ARGV)
+    puts "[ZABEL]<INFO> duration = #{(Time.now - build_start_time).to_i} s in stage build"
+
+    Zabel::zabel_post(ARGV)
+
+    puts "[ZABEL]<INFO> duration = #{(Time.now - total_start_time).to_i} s in stage all"
+else
+    puts Zabel::VERSION
+    puts "https://github.com/WeijunDeng/Zabel"
+end

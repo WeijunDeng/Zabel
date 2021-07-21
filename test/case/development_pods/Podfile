@@ -1,0 +1,52 @@
+test_options = ENV["ZABEL_TEST_POD_OPTIONS"]
+test_options = "" unless test_options
+
+system "rm -rf *.xcworkspace"
+system "rm -rf *.xcodeproj"
+
+app_name = "app"
+app_project = Xcodeproj::Project.new("#{app_name}.xcodeproj")
+app_target = app_project.new_target(:application, app_name, :ios)
+app_target.build_configurations.each do |config|
+    config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.dengweijun.targetbuildcache'
+end
+
+platform :ios, '10.0'
+inhibit_all_warnings!
+
+if test_options.include? "generate_multiple_pod_projects"
+    install! 'cocoapods', :generate_multiple_pod_projects => true, :warn_for_unused_master_specs_repo => false
+else
+    install! 'cocoapods', :warn_for_unused_master_specs_repo => false
+end
+
+app_target.add_file_references([app_project.new_file("../../source/main.m")])
+app_target.add_file_references([app_project.new_file("../../source/empty.swift")])
+
+app_project.save
+
+target app_name do
+    if test_options.include? "use_frameworks_dynamic"
+        use_frameworks! :linkage => :dynamic
+    elsif test_options.include? "use_frameworks_static"
+        use_frameworks! :linkage => :static
+    end
+
+    if test_options.include? "use_modular_headers"
+        use_modular_headers!
+    end
+
+    pod 'local-lib-objc', :path => '../../source/local-lib-objc'
+    pod 'local-lib-swift', :path => '../../source/local-lib-swift'
+
+end
+
+post_install do |installer|
+    installer.generated_projects.map { | project | project.targets }.flatten.each do | target |
+        target.build_configurations.each do |config|
+            if test_options.include? "precompile_prefix_header"
+                config.build_settings['GCC_PRECOMPILE_PREFIX_HEADER'] = "YES"
+            end
+        end
+    end
+end

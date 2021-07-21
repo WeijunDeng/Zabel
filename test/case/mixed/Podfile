@@ -1,0 +1,156 @@
+test_options = ENV["ZABEL_TEST_POD_OPTIONS"]
+test_options = "" unless test_options
+
+system "rm -rf *.xcworkspace"
+system "rm -rf *.xcodeproj"
+
+app_name = "app"
+app_project = Xcodeproj::Project.new("#{app_name}.xcodeproj")
+app_target = app_project.new_target(:application, app_name, :ios)
+app_target.build_configurations.each do |config|
+    config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.dengweijun.targetbuildcache'
+end
+
+platform :ios, '13.0'
+inhibit_all_warnings!
+
+if test_options.include? "generate_multiple_pod_projects"
+    install! 'cocoapods', :generate_multiple_pod_projects => true, :warn_for_unused_master_specs_repo => false
+else
+    install! 'cocoapods', :warn_for_unused_master_specs_repo => false
+end
+
+app_target.add_file_references([app_project.new_file("../../source/main.m")])
+app_target.add_file_references([app_project.new_file("../../source/empty.swift")])
+
+app_project.save
+
+target app_name do
+    if test_options.include? "use_frameworks_dynamic"
+        use_frameworks! :linkage => :dynamic
+    elsif test_options.include? "use_frameworks_static"
+        use_frameworks! :linkage => :static
+    end
+
+    if test_options.include? "use_modular_headers"
+        use_modular_headers!
+    end
+
+    pod 'AFNetworking'
+    pod 'Alamofire' if not test_options.include? "use_modular_headers"
+    pod 'Aspects'
+    pod 'BarcodeScanner'
+    pod 'BlocksKit'
+    pod 'CocoaAsyncSocket'
+    pod 'CocoaLumberjack'
+    pod 'CoconutKit'
+    pod 'DropDown'
+    pod 'Eureka'
+    pod 'FBMemoryProfiler'
+    pod 'FBRetainCycleDetector'
+    pod 'FBSDKCoreKit' if test_options.include? "use_frameworks_" or not test_options.include? "generate_multiple_pod_projects" 
+    pod 'FBSDKLoginKit' if test_options.include? "use_frameworks_" or not test_options.include? "generate_multiple_pod_projects" 
+    pod 'FBSDKShareKit' if test_options.include? "use_frameworks_" or not test_options.include? "generate_multiple_pod_projects" 
+    pod 'Firebase/Analytics' if not test_options.include? "use_modular_headers"
+    pod 'Firebase/Auth' if not test_options.include? "use_modular_headers"
+    pod 'Firebase/Crashlytics' if not test_options.include? "use_modular_headers"
+    pod 'Firebase/Firestore' if not test_options.include? "use_modular_headers"
+    pod 'fishhook'
+    pod 'FLAnimatedImage'
+    pod 'FLEX'
+    pod 'FMDB'
+    pod 'FSCalendar'
+    pod 'GrowingAutoTrackKit'
+    pod 'GrowingCoreKit'
+    pod 'IFTTTConnectSDK'
+    pod 'IQKeyboardManager'
+    pod 'JRSwizzle'
+    pod 'JWT'
+    pod 'Kingfisher'
+    pod 'lottie-ios'
+    pod 'Masonry'
+    pod 'Material'
+    pod 'MJRefresh'
+    pod 'MLeaksFinder'
+    pod 'MMKV'
+    pod 'Moya'
+    pod 'MTAppenderFile'
+    pod 'MTHawkeye'
+    pod 'Nimble'
+    pod 'ObjectMapper'
+    pod 'PhoneNumberKit'
+    pod 'PromiseKit' if not test_options.include? "use_modular_headers"
+    pod 'QMUIKit'
+    pod 'ReactiveObjC'
+    pod 'Realm'
+    pod 'RealmSwift' if test_options.include? "use_frameworks_"
+    pod 'RxCocoa'
+    pod 'RxSwift' if not test_options.include? "use_modular_headers"
+    pod 'SDWebImage'
+    pod 'SDWebImageSwiftUI' if test_options.include? "use_modular_headers"
+    pod 'Sentry'
+    pod 'SkeletonView'
+    pod 'SnapKit'
+    pod 'Sourcery'
+    pod 'Starscream'
+    pod 'SVProgressHUD'
+    pod 'SwifterSwift'
+    pod 'SwiftMessages'
+    pod 'SwiftyJSON'
+    pod 'TensorFlowLiteTaskText' if not ((test_options.include? "use_frameworks_" or test_options.include? "use_modular_headers") and test_options.include? "generate_multiple_pod_projects")
+    pod 'Texture'
+    pod 'YYCache'
+    pod 'YYImage'
+    pod 'YYImage/WebP'
+    pod 'YYModel'
+    pod 'YYText'
+    pod 'ZipArchive'
+
+    pod 'local-lib-objc', :path => '../../source/local-lib-objc'
+    pod 'local-lib-swift', :path => '../../source/local-lib-swift'
+
+end
+
+post_install do |installer|
+    fix_xcode_12_5_compile_error
+
+    installer.generated_projects.map { | project | project.targets }.flatten.each do | target |
+        target.build_configurations.each do |config|
+            if test_options.include? "precompile_prefix_header"
+                config.build_settings['GCC_PRECOMPILE_PREFIX_HEADER'] = "YES"
+            end
+        end
+    end
+end
+
+def fix_xcode_12_5_compile_error
+
+    force_replace_file("Pods/FBRetainCycleDetector/FBRetainCycleDetector/Layout/Classes/FBClassStrongLayout.mm",
+    "layoutCache[currentClass] = ivars;",
+    "layoutCache[(id)currentClass] = ivars;")
+
+end
+
+def force_replace_file(file, origin_content, replace_content)
+    unless File.exist? file
+        return
+    end
+
+    content = File.read(file)
+
+    if content.include? replace_content
+        return
+    end
+
+    unless content.include? origin_content
+        return
+    end
+
+    unless system "chmod 777 #{file}"
+        return
+    end
+
+    content = content.gsub(origin_content, replace_content)
+
+    File.write(file, content)
+end
