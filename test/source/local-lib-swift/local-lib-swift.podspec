@@ -13,8 +13,8 @@ Pod::Spec.new do |s|
   s.source_files = 'Classes/**/*'
   
   s.resource_bundles = {
-    'a' => 'Assets/a.json',
-    'b' => 'Assets/b.json'
+    'c' => 'Assets/c.json',
+    'd' => 'Assets/d.json'
   }
 
 end

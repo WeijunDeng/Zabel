@@ -11,7 +11,7 @@ app_target.build_configurations.each do |config|
     config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.dengweijun.targetbuildcache'
 end
 
-platform :ios, '13.0'
+platform :ios, '10.0'
 inhibit_all_warnings!
 
 if test_options.include? "generate_multiple_pod_projects"
@@ -20,8 +20,8 @@ else
     install! 'cocoapods', :warn_for_unused_master_specs_repo => false
 end
 
-app_target.add_file_references([app_project.new_file("../../source/main.m")])
-app_target.add_file_references([app_project.new_file("../../source/empty.swift")])
+app_target.add_file_references([app_project.new_file("../../test/source/main.m")])
+app_target.add_file_references([app_project.new_file("../../test/source/empty.swift")])
 
 app_project.save
 
@@ -73,7 +73,7 @@ target app_name do
     pod 'MJRefresh'
     pod 'MLeaksFinder'
     pod 'MMKV'
-    pod 'Moya'
+    pod 'Moya' if not test_options.include? "use_modular_headers"
     pod 'MTAppenderFile'
     pod 'MTHawkeye'
     pod 'Nimble'
@@ -87,7 +87,6 @@ target app_name do
     pod 'RxCocoa'
     pod 'RxSwift' if not test_options.include? "use_modular_headers"
     pod 'SDWebImage'
-    pod 'SDWebImageSwiftUI' if test_options.include? "use_modular_headers"
     pod 'Sentry'
     pod 'SkeletonView'
     pod 'SnapKit'
@@ -106,8 +105,8 @@ target app_name do
     pod 'YYText'
     pod 'ZipArchive'
 
-    pod 'local-lib-objc', :path => '../../source/local-lib-objc'
-    pod 'local-lib-swift', :path => '../../source/local-lib-swift'
+    pod 'local-lib-objc', :path => '../../test/source/local-lib-objc'
+    pod 'local-lib-swift', :path => '../../test/source/local-lib-swift'
 
 end
 
@@ -119,6 +118,7 @@ post_install do |installer|
             if test_options.include? "precompile_prefix_header"
                 config.build_settings['GCC_PRECOMPILE_PREFIX_HEADER'] = "YES"
             end
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = "10.0"
         end
     end
 end

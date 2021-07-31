@@ -17,6 +17,8 @@ Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache
 - support development pods
 - support different build path
 - support dependent files and implicit dependent targets
+- support xcodebuild build or archive
+- support fastlane build or archive
 
 ## Installation
 
@@ -36,21 +38,20 @@ Or install it yourself as:
 
 ## Usage
 
-Simply add zabel before your xcodebuild command.
+Simply add zabel before your xcodebuild/fastlane command. Please ensure that your command can work without zabel.
 
 ```
-pod install/update
-zabel xcodebuild -workspace app.xcworkspace -scheme app -configuration Release -sdk iphonesimulator
+zabel xcodebuild/fastlane xxx 
 ```
 
 ## Advanced usage
 
-You can controll your cache keys, which can be more or less.
+You can controll your cache keys, which can be more or less. Please ensure that your arguments are same in pre and post.
 
 ```
-zabel pre -configuration Release -sdk iphonesimulator
-xcodebuild -workspace app.xcworkspace -scheme app -configuration Release -sdk iphonesimulator
-zabel post -configuration Release -sdk iphonesimulator
+zabel pre -configuration Release abc
+xcodebuild/fastlane xxx
+zabel post -configuration Release abc
 ```
 
 ## Development
@@ -65,9 +66,9 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 # test all cases
 ruby test/all.rb
 # test one case
-ruby test/case/development_pods/test.rb
+ruby test/one.rb test/case/simple/Podfile
 # test one todo case
-ruby test/todo/modulemap_file/test.rb
+ruby test/one.rb test/todo/modulemap_file/Podfile
 ```
 
 ## TODO
@@ -92,7 +93,7 @@ Everyone interacting in the Zabel project’s codebases, issue trackers, chat ro
 
 ## FAQ
 
-Q: Must I set -configuration ?
+Q: Must I set configuration ?
 
 A: Yes, for now.
 

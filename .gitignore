@@ -5,14 +5,14 @@
 /doc/
 /pkg/
 /spec/reports/
-/tmp/
+tmp
 Pods
-build
-build-*
+build*
 cache
 logs
 *.xcodeproj
 *.xcworkspace
+*.xcarchive
 *.lock
 *.log
 *.gem
