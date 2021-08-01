@@ -1,6 +1,6 @@
 # Zabel
 
-Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache products for targets. Zabel is not Bazel.
+Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache products for targets. Designed for CI by now. Zabel is not Bazel. 
 
 ## Feature
 
@@ -19,6 +19,7 @@ Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache
 - support dependent files and implicit dependent targets
 - support xcodebuild build or archive
 - support fastlane build or archive
+- support legacy or new build system
 
 ## Installation
 
@@ -53,6 +54,12 @@ zabel pre -configuration Release abc
 xcodebuild/fastlane xxx
 zabel post -configuration Release abc
 ```
+
+## Changelog
+
+- 1.0.2 support legacy build system
+- 1.0.1 support xcodebuild archive and fastlane
+- 1.0.0
 
 ## Development
 

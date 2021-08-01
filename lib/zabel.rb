@@ -13,6 +13,7 @@ module Zabel
 
     BUILD_KEY_SYMROOT = "SYMROOT"
     BUILD_KEY_CONFIGURATION_BUILD_DIR = "CONFIGURATION_BUILD_DIR"
+    BUILD_KEY_TARGET_BUILD_DIR = "TARGET_BUILD_DIR"
     BUILD_KEY_OBJROOT = "OBJROOT"
     BUILD_KEY_TARGET_TEMP_DIR = "TARGET_TEMP_DIR"
     BUILD_KEY_PODS_XCFRAMEWORKS_BUILD_DIR = "PODS_XCFRAMEWORKS_BUILD_DIR"
@@ -74,15 +75,6 @@ module Zabel
     end
 
     def self.zabel_should_extract_once
-        # By default, to achieve better compatibility, zabel extracts target cache ondemand, 
-        # which means it depends on original dependencies of targets and it is in parallel.
-        # However, extracting once in a shell script build phase rather than multiple shell script build phases, 
-        # is a little bit faster in some cases.
-        # You can enable this by set "export ZABEL_EXTRACT_ONCE=YES"
-        should_extract_once = ENV["ZABEL_EXTRACT_ONCE"]
-        if should_extract_once == "YES"
-            return true
-        end
         return false
     end
 
@@ -866,15 +858,36 @@ module Zabel
     
     def self.zabel_extract
         target_cache_dir = ARGV[1]
-        product_path = ARGV[2]
         
         cache_product_path = target_cache_dir + "/#{FILE_NAME_PRODUCT}"
     
         start_time = Time.now
-        command = "mkdir -p \"#{ENV[BUILD_KEY_SYMROOT]}/#{product_path}\" && cd \"#{ENV[BUILD_KEY_SYMROOT]}/#{product_path}/..\" && tar -xf \"#{cache_product_path}\""
-        puts command
-        raise unless system command
-    
+
+        if ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR] != ENV[BUILD_KEY_TARGET_BUILD_DIR]
+            command = "mkdir -p \"#{ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR]}\" && cd \"#{File.dirname(ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR])}/\" && tar -xf \"#{cache_product_path}\""
+            puts command
+            raise unless system command
+
+            command = "rm -rf \"#{ENV[BUILD_KEY_TARGET_BUILD_DIR]+"/"+ENV[BUILD_KEY_FULL_PRODUCT_NAME]}\""
+            puts command
+            raise unless system command
+
+            command = "mkdir -p \"#{File.dirname(ENV[BUILD_KEY_TARGET_BUILD_DIR]+"/"+ENV[BUILD_KEY_FULL_PRODUCT_NAME])}\""
+            puts command
+            raise unless system command
+
+            command = "mv \"#{ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR]+"/"+ENV[BUILD_KEY_FULL_PRODUCT_NAME]}\" \"#{ENV[BUILD_KEY_TARGET_BUILD_DIR]+"/"+ENV[BUILD_KEY_FULL_PRODUCT_NAME]}\""
+            puts command
+            raise unless system command
+
+            command = "/bin/ln -sfh \"#{ENV[BUILD_KEY_TARGET_BUILD_DIR]+"/"+ENV[BUILD_KEY_FULL_PRODUCT_NAME]}\" \"#{ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR]+"/"+ENV[BUILD_KEY_FULL_PRODUCT_NAME]}\""
+            puts command
+            raise unless system command
+        else
+            command = "mkdir -p \"#{ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR]}\" && cd \"#{File.dirname(ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR])}/\" && tar -xf \"#{cache_product_path}\""
+            puts command
+            raise unless system command
+        end 
     end
     
     def self.zabel_printenv

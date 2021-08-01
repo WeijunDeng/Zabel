@@ -59,7 +59,7 @@ def zabel_test(podfiles)
     cache_root = Dir.pwd + "/cache"
     system_cmd "rm -rf \"#{cache_root}\""
 
-    all_build_options = ["xcodebuild", "fastlane"].product(["", "archive"], ["", "derived_data_path"]).map{|options| options.select{|option|option.size>0}.join(",")}
+    all_build_options = ["xcodebuild", "fastlane"].product(["", "archive"], ["", "derived_data_path"], ["", "modern_build_system"]).map{|options|options.select{|option|option.size>0}.join(",")}
 
     all_pod_options = ["", "use_modular_headers"].product(["", "generate_multiple_pod_projects"], ["", "precompile_prefix_header"], ["", "use_frameworks_static", "use_frameworks_dynamic"]).map{|options| options.select{|option|option.size>0}.join(",")}
 
@@ -116,8 +116,11 @@ def zabel_test(podfiles)
                             archive_path = "-archivePath \"#{build_path}/app.xcarchive\""
                             build = "archive"
                         end
-                        
-                        system_cmd "cd \"#{workspace}\" && export ZABEL_CACHE_ROOT=\"#{cache_root}\" && #{prefix} xcodebuild #{build} -workspace app.xcworkspace -scheme app -configuration Debug -arch x86_64 -sdk iphonesimulator #{derived_data_path} #{archive_path} &> \"#{log_path}\""
+                        modern_build_system = "-UseModernBuildSystem=NO"
+                        if build_option.include? "modern_build_system"
+                            modern_build_system = "-UseModernBuildSystem=YES"
+                        end
+                        system_cmd "cd \"#{workspace}\" && export ZABEL_CACHE_ROOT=\"#{cache_root}\" && #{prefix} xcodebuild #{build} -workspace app.xcworkspace -scheme app -configuration Debug -arch x86_64 -sdk iphonesimulator #{derived_data_path} #{archive_path} #{modern_build_system} &> \"#{log_path}\""
                     elsif build_option.include? "fastlane"
                         derived_data_path = ""
                         if build_option.include? "derived_data_path"
@@ -129,8 +132,11 @@ def zabel_test(podfiles)
                             archive_path = "--archive_path \"#{build_path}/app.xcarchive\""
                             skip_archive = ""
                         end
-
-                        system_cmd "cd \"#{workspace}\" && export ZABEL_CACHE_ROOT=\"#{cache_root}\" && export FASTLANE_DISABLE_COLORS=1 && #{prefix} fastlane gym --workspace app.xcworkspace --scheme app --configuration Debug --xcargs 'ARCHS=x86_64' --sdk iphonesimulator --destination 'generic/platform=iOS Simulator' --clean #{derived_data_path} #{archive_path} --skip_package_ipa --disable_xcpretty #{skip_archive} &> \"#{log_path}\""
+                        modern_build_system = "-UseModernBuildSystem=NO"
+                        if build_option.include? "modern_build_system"
+                            modern_build_system = "-UseModernBuildSystem=YES"
+                        end
+                        system_cmd "cd \"#{workspace}\" && export ZABEL_CACHE_ROOT=\"#{cache_root}\" && export FASTLANE_DISABLE_COLORS=1 && #{prefix} fastlane gym --workspace app.xcworkspace --scheme app --configuration Debug --xcargs 'ARCHS=x86_64 #{modern_build_system}' --sdk iphonesimulator --destination 'generic/platform=iOS Simulator' --clean #{derived_data_path} #{archive_path} --skip_package_ipa --disable_xcpretty #{skip_archive} &> \"#{log_path}\""
                     end
             
                     if build_option.include? "archive" or build_option.include? "derived_data_path"
