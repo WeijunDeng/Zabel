@@ -24,8 +24,17 @@ elsif ARGV.include?("-configuration") or ARGV.include?("--configuration")
     Zabel::zabel_post(ARGV)
 
     puts "[ZABEL]<INFO> duration = #{(Time.now - total_start_time).to_i} s in stage all"
-else
-    puts "version: #{Zabel::VERSION}"
-    puts "exec: #{$0}"
+elsif ARGV.size == 0 or (ARGV.size == 1 and ARGV[0].include?("v"))
+    puts "ver: #{Zabel::VERSION}"
+    puts "exe: #{$0}"
     puts "url: https://github.com/WeijunDeng/Zabel"
+else
+    puts "Usage: "
+    puts "IMPORTANT: configuration must be set."
+    puts "For example:"
+    puts "zabel xcodebuild archive -workspace app.xcworkspace -scheme app -configuration Debug ..."
+    puts "zabel fastlane gym --workspace app.xcworkspace --scheme app --configuration Debug ..."
+    puts ""
+    puts "Advanced usage:"
+    puts "zabel pre -configuration Debug && xcodebuild/fastlane ... && zabel post -configuration Debug"
 end

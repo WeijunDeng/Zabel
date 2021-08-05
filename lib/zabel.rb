@@ -74,10 +74,6 @@ module Zabel
         return 1
     end
 
-    def self.zabel_should_extract_once
-        return false
-    end
-
     def self.zabel_get_projects
         # TODO: to support more project, not only Pods
         pods_project = Xcodeproj::Project.open("Pods/Pods.xcodeproj")
@@ -645,23 +641,7 @@ module Zabel
         return potential_hit_target_cache_dirs
     end
     
-    # see https://github.com/CocoaPods/Xcodeproj/blob/master/lib/xcodeproj/project/object/native_target.rb#L239
-    # and this is faster, without searching deeply. 
-    def self.zabel_fast_add_dependency(project, target_target, target, subproject_reference)
-        container_proxy = project.new(Xcodeproj::Project::PBXContainerItemProxy)
-        container_proxy.container_portal = subproject_reference.uuid
-        container_proxy.proxy_type = Xcodeproj::Constants::PROXY_TYPES[:native_target]
-        container_proxy.remote_global_id_string = target.uuid
-        container_proxy.remote_info = target.name
-    
-        dependency = project.new(Xcodeproj::Project::PBXTargetDependency)
-        dependency.name = target.name
-        dependency.target_proxy = container_proxy
-    
-        target_target.dependencies << dependency
-    end
-    
-    def self.zabel_disable_build_and_inject_extract(project, target, inject_project, inject_target, inject_scripts, target_context)
+    def self.zabel_disable_build_and_inject_extract(project, target, target_context)
         target_cache_dir = target_context[:hit_target_cache_dir]
 
         # touch to update mtime
@@ -674,34 +654,24 @@ module Zabel
             build_phase.class == Xcodeproj::Project::Object::PBXResourcesBuildPhase
         }
 
-        extract_script = "#{$0} #{STAGE_EXTRACT} \"#{target_cache_dir}\" \"#{target_context[:build_product_dir]}\" \"#{target_context[:build_intermediate_dir]}\""
-
-        if zabel_should_extract_once
-            subproject_reference = nil
-            project.main_group.files.each do | file |
-                if file.class == Xcodeproj::Project::Object::PBXFileReference and File.basename(file.path) == File.basename(inject_project.path)
-                    subproject_reference = file
-                    break
-                end
-            end
-        
-            unless subproject_reference
-                subproject_reference = project.main_group.new_reference(inject_project.path, :group)
-            end
-        
-            zabel_fast_add_dependency(project, target, inject_target, subproject_reference)
-            
-            inject_scripts.push extract_script
-        else
-            inject_phase = target.new_shell_script_build_phase("zabel_extract_#{target.name}")
-            inject_phase.shell_script = extract_script
-            inject_phase.show_env_vars_in_log = '1'
+        zabel_exec = "\"#{$0}\""
+        if ENV["BUNDLE_BIN_PATH"] and ENV["BUNDLE_BIN_PATH"].size > 0 and ENV["BUNDLE_GEMFILE"] and ENV["BUNDLE_GEMFILE"].size > 0
+            zabel_exec = "cd \"#{File.dirname(ENV["BUNDLE_GEMFILE"])}\" && \"#{ENV["BUNDLE_BIN_PATH"]}\" exe zabel"
         end
+        extract_script = "#{zabel_exec} #{STAGE_EXTRACT} \"#{target_cache_dir}\" \"#{target_context[:build_product_dir]}\" \"#{target_context[:build_intermediate_dir]}\""
+
+        inject_phase = target.new_shell_script_build_phase("zabel_extract_#{target.name}")
+        inject_phase.shell_script = extract_script
+        inject_phase.show_env_vars_in_log = '1'
     end
     
     def self.zabel_inject_printenv(project, target)
+        zabel_exec = "\"#{$0}\""
+        if ENV["BUNDLE_BIN_PATH"] and ENV["BUNDLE_BIN_PATH"].size > 0 and ENV["BUNDLE_GEMFILE"] and ENV["BUNDLE_GEMFILE"].size > 0
+            zabel_exec = "cd \"#{File.dirname(ENV["BUNDLE_GEMFILE"])}\" && \"#{ENV["BUNDLE_BIN_PATH"]}\" exe zabel"
+        end
         inject_phase = target.new_shell_script_build_phase("zabel_printenv_#{target.name}")
-        inject_phase.shell_script = "#{$0} #{STAGE_PRINTENV} #{target.name} \"#{project.path}\""
+        inject_phase.shell_script = "#{zabel_exec} #{STAGE_PRINTENV} #{target.name} \"#{project.path}\""
         inject_phase.show_env_vars_in_log = '1'
     end
     
@@ -727,15 +697,6 @@ module Zabel
         end
     
         zabel_clean_temp_files
-    
-        if zabel_should_extract_once
-            inject_project = Xcodeproj::Project.new("Pods/zabel.xcodeproj")
-            inject_target = inject_project.new_aggregate_target("zabel")
-            inject_phase = inject_target.new_shell_script_build_phase("zabel_extract")
-            inject_phase.show_env_vars_in_log = '1'
-            inject_project.save
-            inject_scripts = []
-        end
     
         projects = zabel_get_projects
     
@@ -823,7 +784,7 @@ module Zabel
                 target_context = pre_targets_context[target]
     
                 if target_context[:target_status] == STATUS_HIT
-                    zabel_disable_build_and_inject_extract(project, target, inject_project, inject_target, inject_scripts, target_context)
+                    zabel_disable_build_and_inject_extract(project, target, target_context)
                 else
                     unless target_context[:target_status] == STATUS_MISS
                         target_context[:target_status] = STATUS_MISS
@@ -843,12 +804,6 @@ module Zabel
             else
                 zabel_clean_backup_project(project)
             end
-        end
-    
-        if zabel_should_extract_once and inject_scripts.size > 0
-            inject_scripts = (["startTime_s=`date +%s`"] + inject_scripts + ["echo \"[ZABEL]<INFO> duration = $[ `date +%s` - $startTime_s ] s in stage #{STAGE_EXTRACT}\""]).flatten
-            inject_phase.shell_script = inject_scripts.join("\n")
-            inject_project.save
         end
 
         puts "[ZABEL]<INFO> total #{hit_count + miss_count} hit #{hit_count} miss #{miss_count} iteration #{iteration_count}"

@@ -2,6 +2,8 @@
 
 Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache products for targets. Designed for CI by now. Zabel is not Bazel. 
 
+WARNING: BE CAREFUL IN PRODUCTION ENVIRONMENT.
+
 ## Feature
 
 - only support Cocoapods targets now
@@ -23,9 +25,13 @@ Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache
 
 ## Installation
 
+Please use Ruby 2.x.
+
 Add this line to your application's Gemfile:
 
 ```ruby
+source "https://rubygems.org"
+
 gem 'zabel'
 ```
 
@@ -33,30 +39,53 @@ And then execute:
 
     $ bundle
 
+Or install in local path:
+
+    $ bundle install --path vendor/bundle
+
 Or install it yourself as:
 
-    $ gem install zabel
+    $ [sudo] gem install zabel
 
 ## Usage
 
-Simply add zabel before your xcodebuild/fastlane command. Please ensure that your command can work without zabel.
+Simply add zabel before your xcodebuild/fastlane command. Please ensure that your command can work without zabel. 
 
-```
-zabel xcodebuild/fastlane xxx 
-```
+    $ [bundle exe] zabel xcodebuild/fastlane ...
 
 ## Advanced usage
 
 You can controll your cache keys, which can be more or less. Please ensure that your arguments are same in pre and post.
 
-```
-zabel pre -configuration Release abc
-xcodebuild/fastlane xxx
-zabel post -configuration Release abc
-```
+    $ [bundle exe] zabel pre -configuration Debug ...
+    $ xcodebuild/fastlane ...
+    $ [bundle exe] zabel post -configuration Debug ...
+
+Importantly, configuration argument must be set with zabel.
+
+## Options
+
+You can custom some options by yourself.
+
+Zabel stores caches in `~/zabel` by default. You can change this path.
+
+    $ export ZABEL_CACHE_ROOT=xxx
+
+Zabel uses LRU to clear unuse old caches, to keep max count with 10000 by default. You can change this number.
+
+    $ export ZABEL_CACHE_COUNT=12345
+
+Zable caches targets which count of source files is greater than or equal 1 by default. You can set this value to 0 or more than 1 to achieve higher total speed. 
+
+    $ export ZABEL_MIN_SOURCE_FILE_COUNT=10
+
+Zabel detects module map dependecy by default. However, there are bugs of xcodebuild or swift-frontend, which emits unnecessary, incorrect and even cycle modulemap dependencies. Cycle dependency targets will be miss every time. To test by run "ruby test/one.rb test/todo/modulemap_file/Podfile". You can disable this feature.
+
+    $ export ZABEL_NOT_DETECT_MODULE_MAP_DEPENDENCY=YES
 
 ## Changelog
 
+- 1.0.3 support bundle install
 - 1.0.2 support legacy build system
 - 1.0.1 support xcodebuild archive and fastlane
 - 1.0.0
