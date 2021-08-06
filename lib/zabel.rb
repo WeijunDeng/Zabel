@@ -552,9 +552,17 @@ module Zabel
     
                     target_context[:dependency_files] = target_context[:dependency_files] - implicit_dependencies
                     dependency_files_md5 = []
+                    should_not_cache = false
                     target_context[:dependency_files].each do | file |
+                        if file.start_with? target_context[BUILD_KEY_OBJROOT] + "/" or file.start_with? target_context[BUILD_KEY_SYMROOT] + "/"
+                            puts "[ZABEL/W] #{target.name} #{file} dependecy should not include build path"
+                            should_not_cache = true
+                            break
+                        end
                         dependency_files_md5.push [zabel_get_content_without_pwd(file), zabel_get_file_md5(file)]
                     end
+                    next if should_not_cache
+                    
                     target_context[:dependency_files_md5] = dependency_files_md5.sort.uniq
     
                     dependency_targets_md5 = dependency_targets_set.to_a.map { | target |  [target.name, post_targets_context[target][:target_md5]]}
