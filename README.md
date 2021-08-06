@@ -1,4 +1,19 @@
-# Zabel
+- [Introduction](https://github.com/WeijunDeng/Zabel#introduction)
+- [Feature](https://github.com/WeijunDeng/Zabel#feature)
+- [Installation](https://github.com/WeijunDeng/Zabel#installation)
+- [Usage](https://github.com/WeijunDeng/Zabel#usage)
+- [Advanced usage](https://github.com/WeijunDeng/Zabel#advanced-usage)
+- [Options](https://github.com/WeijunDeng/Zabel#options)
+- [Changelog](https://github.com/WeijunDeng/Zabel#changelog)
+- [Development](https://github.com/WeijunDeng/Zabel#development)
+- [Test](https://github.com/WeijunDeng/Zabel#test)
+- [Contributing](https://github.com/WeijunDeng/Zabel#contributing)
+- [License](https://github.com/WeijunDeng/Zabel#license)
+- [Code of Conduct](https://github.com/WeijunDeng/Zabel#code-of-conduct)
+- [FAQ](https://github.com/WeijunDeng/Zabel#faq)
+- [TODO](https://github.com/WeijunDeng/Zabel#todo)
+
+# Introduction
 
 Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache products for targets. Designed for CI by now. Zabel is not Bazel. 
 
@@ -65,7 +80,7 @@ Importantly, configuration argument must be set with zabel.
 
 ## Options
 
-You can custom some options by yourself.
+You can customize some options by yourself.
 
 Zabel stores caches in `~/zabel` by default. You can change this path.
 
@@ -107,14 +122,6 @@ ruby test/one.rb test/case/simple/Podfile
 ruby test/one.rb test/todo/modulemap_file/Podfile
 ```
 
-## TODO
-
-- support more projects and targets, not only Pods
-- support and test more clang arguments
-- support intermediate cache such as .o and .gcno
-- try to support local development
-- try to support remote cache server
-
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/WeijunDeng/Zabel. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
@@ -149,4 +156,11 @@ Q: What about dependencies ?
 
 A: Simple dependent files (headers) and implicit dependent targets will be detected. If dependent files of a target change, this target will be recompiled. If dependent targets of a target miss cache, this target and dependent targets will be recompiled. 
 
+## TODO
+
+- support more projects and targets, not only Pods
+- support and test more clang arguments
+- support intermediate cache such as .o and .gcno
+- try to support local development
+- try to support remote cache server
 
