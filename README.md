@@ -1,4 +1,7 @@
-- [Introduction](https://github.com/WeijunDeng/Zabel#introduction)
+Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache products for targets. Designed for CI by now. Zabel is not Bazel. 
+
+WARNING: BE CAREFUL IN PRODUCTION ENVIRONMENT.
+
 - [Feature](https://github.com/WeijunDeng/Zabel#feature)
 - [Installation](https://github.com/WeijunDeng/Zabel#installation)
 - [Usage](https://github.com/WeijunDeng/Zabel#usage)
@@ -12,12 +15,6 @@
 - [Code of Conduct](https://github.com/WeijunDeng/Zabel#code-of-conduct)
 - [FAQ](https://github.com/WeijunDeng/Zabel#faq)
 - [TODO](https://github.com/WeijunDeng/Zabel#todo)
-
-# Introduction
-
-Zabel, is a build cacher for Xcode, using Xcodeproj and MD5, to detect and cache products for targets. Designed for CI by now. Zabel is not Bazel. 
-
-WARNING: BE CAREFUL IN PRODUCTION ENVIRONMENT.
 
 ## Feature
 
