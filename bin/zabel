@@ -19,11 +19,11 @@ elsif ARGV.include?("-configuration") or ARGV.include?("--configuration")
 
     build_start_time = Time.now
     exit 1 unless system(*ARGV)
-    puts "[ZABEL]<INFO> duration = #{(Time.now - build_start_time).to_i} s in stage build"
+    puts "[ZABEL/I] duration = #{(Time.now - build_start_time).to_i} s in stage build"
 
     Zabel::zabel_post(ARGV)
 
-    puts "[ZABEL]<INFO> duration = #{(Time.now - total_start_time).to_i} s in stage all"
+    puts "[ZABEL/I] duration = #{(Time.now - total_start_time).to_i} s in stage all"
 elsif ARGV.size == 0 or (ARGV.size == 1 and ARGV[0].include?("v"))
     puts "ver: #{Zabel::VERSION}"
     puts "exe: #{$0}"

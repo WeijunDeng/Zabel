@@ -73,7 +73,7 @@ def zabel_test(podfiles)
                 
                 system_cmd "rm -rf #{Dir.pwd + "/tmp/*/Pods"}"
                 system_cmd "rm -rf #{Dir.pwd + "/tmp/*/build-*"}"
-                system_cmd "rm -rf ~/Library/Developer/Xcode/DerivedData"
+                system_cmd "rm -rf \"#{Dir.home}/Library/Developer/Xcode/DerivedData\""
                 
                 first_size = 0
                 all_cache_options.each do | cache_option |
@@ -155,8 +155,8 @@ def zabel_test(podfiles)
                             raise "build log should include BUILD SUCCEEDED"
                         end
                     end
-                    if log_content.include? "[ZABEL]<ERROR>"
-                        raise "build log should not include [ZABEL]<ERROR>"
+                    if log_content.include? "[ZABEL/E]"
+                        raise "build log should not include [ZABEL/E]"
                     end
 
                     if cache_option == "cache_all2"

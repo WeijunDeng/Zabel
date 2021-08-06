@@ -125,7 +125,7 @@ module Zabel
                 file = file.gsub("\\ ", " ")
     
                 unless File.exist? file
-                    puts "[ZABEL]<ERROR> #{target.name} #{file} should exist in dependency file #{dependency_file}"
+                    puts "[ZABEL/E] #{target.name} #{file} should exist in dependency file #{dependency_file}"
                     return []
                 end
     
@@ -194,11 +194,11 @@ module Zabel
             file_time_hash[file] = File.mtime(file)
         end
         file_list = file_list.sort_by {|file| - file_time_hash[file].to_f}
-        puts "[ZABEL]<INFO> keep cache " + file_list.size.to_s + " " + Open3.capture3("du -sh #{zabel_get_cache_root}")[0].to_s
+        puts "[ZABEL/I] keep cache " + file_list.size.to_s + " " + Open3.capture3("du -sh #{zabel_get_cache_root}")[0].to_s
     
         if file_list.size > 1
-            puts "[ZABEL]<INFO> keep oldest " + file_time_hash[file_list.last].to_s + " " + file_list.last
-            puts "[ZABEL]<INFO> keep newest " + file_time_hash[file_list.first].to_s + " " + file_list.first
+            puts "[ZABEL/I] keep oldest " + file_time_hash[file_list.last].to_s + " " + file_list.last
+            puts "[ZABEL/I] keep newest " + file_time_hash[file_list.first].to_s + " " + file_list.first
         end
     
         if file_list.size > zabel_get_cache_count
@@ -242,7 +242,7 @@ module Zabel
         project_configuration_content = project_configuration.pretty_print.to_yaml
         project_xcconfig = ""
         if project_configuration.base_configuration_reference
-            config_file_path = project_configuration.base_configuration_reference.real_path
+            config_file_path = project_configuration.base_configuration_reference.real_path.to_s
             if File.exist? config_file_path
                 project_xcconfig = File.read(config_file_path).lines.reject{|line|line.include? "_SEARCH_PATHS"}.sort.join("")
             end
@@ -251,8 +251,10 @@ module Zabel
         target_configuration = target.build_configurations.detect { | config | config.name == configuration_name}
         target_configuration_content = target_configuration.pretty_print.to_yaml
         target_xcconfig = ""
+        target_spec_name = ""
         if target_configuration.base_configuration_reference
-            config_file_path = target_configuration.base_configuration_reference.real_path
+            config_file_path = target_configuration.base_configuration_reference.real_path.to_s
+            target_spec_name = File.basename(config_file_path).split('.')[0]
             if File.exist? config_file_path
                 target_xcconfig = File.read(config_file_path).lines.reject{|line|line.include? "_SEARCH_PATHS"}.sort.join("")
             end
@@ -292,19 +294,12 @@ module Zabel
         source_md5_list.push "Zabel version : #{Zabel::VERSION}"
         source_md5_list.push "ARGV : #{key_argv.to_s}"
     
-        has_found_checksum = false
-        split_parts = target.name.split("-")
-        split_parts.each_with_index do | part, index |
-            spec_name = split_parts[0..index].join("-")
-            # TODO: to get a explicit spec name from a target. 
-            # Now all potential spec names are push into md5 for safety.
-            if $zabel_podfile_spec_checksums.has_key? spec_name
-                source_md5_list.push "SPEC CHECKSUM : #{spec_name} #{$zabel_podfile_spec_checksums[spec_name]}"
-                has_found_checksum = true
-            end
-        end
-        unless has_found_checksum
-            puts "[ZABEL]<ERROR> #{target.name} SPEC CHECKSUM should be found"
+        # TODO: to get a explicit spec name from a target. 
+        if target_spec_name.size > 0 and $zabel_podfile_spec_checksums.has_key? target_spec_name
+            source_md5_list.push "SPEC CHECKSUM : #{target_spec_name} #{$zabel_podfile_spec_checksums[target_spec_name]}"
+            has_found_checksum = true
+        else
+            puts "[ZABEL/E] #{target.name} #{target_spec_name} SPEC CHECKSUM should be found"
         end
     
         source_md5_list.push "Project : #{File.basename(project.path)}"
@@ -338,10 +333,6 @@ module Zabel
         command = "rm -rf Pods/*.xcodeproj/*.#{FILE_NAME_TARGET_CONTEXT}"
         puts command
         raise unless system command
-    
-        command = "rm -rf Pods/zabel.xcodeproj"
-        puts command
-        raise unless system command
     end
     
     def self.zabel_add_cache(target, target_context, message)
@@ -362,7 +353,7 @@ module Zabel
         end
     
         unless full_product_name and full_product_name.size > 0 and File.exist? "#{product_dir}/#{full_product_name}"
-            puts "[ZABEL]<ERROR> #{target.name} #{product_dir}/#{full_product_name} should exist"
+            puts "[ZABEL/E] #{target.name} #{product_dir}/#{full_product_name} should exist"
             return false
         end
     
@@ -375,12 +366,12 @@ module Zabel
     
         puts command
         unless system command
-            puts "[ZABEL]<ERROR> #{command} should succeed"
+            puts "[ZABEL/E] #{command} should succeed"
             return false
         end
     
         if File.exist? target_cache_dir
-            puts "[ZABEL]<ERROR> #{target_cache_dir} should not exist"
+            puts "[ZABEL/E] #{target_cache_dir} should not exist"
             raise unless system "rm -rf \"#{target_cache_dir}\""
             return false
         end
@@ -388,7 +379,7 @@ module Zabel
         command = "mkdir -p \"#{target_cache_dir}\""
         unless system command
             puts command
-            puts "[ZABEL]<ERROR> #{command} should succeed"
+            puts "[ZABEL/E] #{command} should succeed"
             return false
         end
     
@@ -398,11 +389,11 @@ module Zabel
         puts command
         unless system command
             puts command
-            puts "[ZABEL]<ERROR> #{command} should succeed"
+            puts "[ZABEL/E] #{command} should succeed"
             return false
         end
         unless File.exist? cache_product_path
-            puts "[ZABEL]<ERROR> #{cache_product_path} should exist after mv"
+            puts "[ZABEL/E] #{cache_product_path} should exist after mv"
             return false
         end
         
@@ -418,6 +409,7 @@ module Zabel
         target_context.delete(:target_status)
         target_context.delete(:potential_hit_target_cache_dirs)
         target_context.delete(:target_md5_content)
+        target_context.delete(:miss_dependency_list)
         [BUILD_KEY_SYMROOT, BUILD_KEY_CONFIGURATION_BUILD_DIR, BUILD_KEY_OBJROOT, BUILD_KEY_TARGET_TEMP_DIR, BUILD_KEY_PODS_XCFRAMEWORKS_BUILD_DIR, BUILD_KEY_SRCROOT].each do | key |
             target_context.delete(key)
         end
@@ -438,7 +430,7 @@ module Zabel
             configuration_name = argv[argv.index("--configuration") + 1]
         end
         unless configuration_name and configuration_name.size > 0
-            raise "[ZABEL]<ERROR> -configuration or --configuration should be set"
+            raise "[ZABEL/E] -configuration or --configuration should be set"
         end
 
         start_time = Time.now
@@ -450,6 +442,11 @@ module Zabel
         post_targets_context = {}
     
         projects.each do | project |
+            project_configuration = project.build_configurations.detect { | config | config.name == configuration_name}
+            unless project_configuration
+                puts "[ZABEL/E] #{project.path} should have config #{configuration_name}"
+                next
+            end
             project.native_targets.each do | target |
                 if zabel_can_cache_target(target)
                     
@@ -469,7 +466,7 @@ module Zabel
 
                         dependency_files = zabel_get_dependency_files(target, intermediate_dir, product_dir, xcframeworks_build_dir)
                         if source_files.size > 0 and dependency_files.size == 0 and target.product_type != "com.apple.product-type.bundle"
-                            puts "[ZABEL]<ERROR> #{target.name} should have dependent files"
+                            puts "[ZABEL/E] #{target.name} should have dependent files"
                             next
                         end
                         target_context[:dependency_files] = dependency_files - source_files
@@ -477,7 +474,7 @@ module Zabel
                         target_context[:target_md5_content] = target_md5_content
                         target_md5 = Digest::MD5.hexdigest(target_md5_content)
                         unless target_context[:target_md5] == target_md5
-                            puts "[ZABEL]<ERROR> #{target.name} md5 should not be changed after build"
+                            puts "[ZABEL/E] #{target.name} md5 should not be changed after build"
                             next
                         end
                         if target_context[BUILD_KEY_SRCROOT] and target_context[BUILD_KEY_SRCROOT].size > 0 and 
@@ -485,19 +482,19 @@ module Zabel
                             if File.exist? Dir.pwd + "/" + zabel_get_content_without_pwd("#{target_context[BUILD_KEY_SRCROOT]}/#{target_context[BUILD_KEY_MODULEMAP_FILE]}")
                                 target_context[BUILD_KEY_MODULEMAP_FILE] = zabel_get_content_without_pwd("#{target_context[BUILD_KEY_SRCROOT]}/#{target_context[BUILD_KEY_MODULEMAP_FILE]}")
                             else
-                                puts "[ZABEL]<ERROR> #{target.name} #{target_context[BUILD_KEY_MODULEMAP_FILE]} should be supported"
+                                puts "[ZABEL/E] #{target.name} #{target_context[BUILD_KEY_MODULEMAP_FILE]} should be supported"
                                 next
                             end
                         end
                     elsif target_context[:target_status] == STATUS_HIT
                         if target_context[BUILD_KEY_MODULEMAP_FILE] and target_context[BUILD_KEY_MODULEMAP_FILE].size > 0
                             if not File.exist? Dir.pwd + "/" + target_context[BUILD_KEY_MODULEMAP_FILE]
-                                puts "[ZABEL]<ERROR> #{target.name} #{target_context[BUILD_KEY_MODULEMAP_FILE]} should be supported"
+                                puts "[ZABEL/E] #{target.name} #{target_context[BUILD_KEY_MODULEMAP_FILE]} should be supported"
                                 next
                             end
                         end
                     else
-                        puts "[ZABEL]<ERROR> #{target.name} should be hit or miss"
+                        puts "[ZABEL/E] #{target.name} should be hit or miss"
                         next
                     end
     
@@ -578,13 +575,13 @@ module Zabel
     
         zabel_keep
     
-        puts "[ZABEL]<INFO> total add #{add_count}"
+        puts "[ZABEL/I] total add #{add_count}"
     
-        puts "[ZABEL]<INFO> duration = #{(Time.now - start_time).to_i} s in stage post"
+        puts "[ZABEL/I] duration = #{(Time.now - start_time).to_i} s in stage post"
     
     end
     
-    def self.zabel_get_potential_hit_target_cache_dirs(target, target_md5)
+    def self.zabel_get_potential_hit_target_cache_dirs(target, target_md5, miss_dependency_list)
         dependency_start_time = Time.now
         target_cache_dirs = Dir.glob(zabel_get_cache_root + "/" + target.name + "-" + target_md5 + "-*")
         file_time_hash = {}
@@ -603,12 +600,12 @@ module Zabel
                 dependency_md5 = item[1]
     
                 unless File.exist? dependency_file
-                    puts "[ZABEL]<WARNING> #{target.name} #{dependency_file} file should exist to be hit"
+                    miss_dependency_list.push "[ZABEL/W] #{target.name} #{dependency_file} file should exist to be hit"
                     dependency_miss = true
                     break
                 end
                 unless zabel_get_file_md5(dependency_file) == dependency_md5
-                    puts "[ZABEL]<WARNING> #{target.name} #{dependency_file} md5 should match to be hit"
+                    miss_dependency_list.push "[ZABEL/W] #{target.name} #{dependency_file} md5 #{zabel_get_file_md5(dependency_file)} should match #{dependency_md5} to be hit"
                     dependency_miss = true
                     break
                 end
@@ -617,14 +614,14 @@ module Zabel
                 if not target_context[:target_md5] == target_md5
                     command = "rm -rf \"#{target_cache_dir}\""
                     raise unless system command
-                    puts "[ZABEL]<ERROR> #{target.name} #{target_cache_dir} target md5 should match to be verified"
+                    puts "[ZABEL/E] #{target.name} #{target_cache_dir} target md5 should match to be verified"
                     dependency_miss = false
                     next
                 end
                 if not target_context[:product_md5] == zabel_get_file_md5(target_cache_dir + "/" + FILE_NAME_PRODUCT)
                     command = "rm -rf \"#{target_cache_dir}\""
                     raise unless system command
-                    puts "[ZABEL]<ERROR> #{target.name} #{target_cache_dir} product md5 should match to be verified"
+                    puts "[ZABEL/E] #{target.name} #{target_cache_dir} product md5 should match to be verified"
                     dependency_miss = false
                     next
                 end
@@ -685,7 +682,7 @@ module Zabel
             configuration_name = argv[argv.index("--configuration") + 1]
         end
         unless configuration_name and configuration_name.size > 0
-            raise "[ZABEL]<ERROR> -configuration or --configuration should be set"
+            raise "[ZABEL/E] -configuration or --configuration should be set"
         end
 
         start_time = Time.now
@@ -708,19 +705,29 @@ module Zabel
         iteration_count = 0
     
         projects.each do | project |
+            project_configuration = project.build_configurations.detect { | config | config.name == configuration_name}
+            unless project_configuration
+                puts "[ZABEL/E] #{project.path} should have config #{configuration_name}"
+                next
+            end
             project.native_targets.each do | target |
                 if zabel_can_cache_target(target)
                     source_files = zabel_get_target_source_files(target)
                     next unless source_files.size >= zabel_get_min_source_file_count
                     target_md5_content = zabel_get_target_md5_content(project, target, configuration_name, argv, source_files)
                     target_md5 = Digest::MD5.hexdigest(target_md5_content)
-                    potential_hit_target_cache_dirs = zabel_get_potential_hit_target_cache_dirs(target, target_md5) 
+                    miss_dependency_list = []
+                    potential_hit_target_cache_dirs = zabel_get_potential_hit_target_cache_dirs(target, target_md5, miss_dependency_list) 
     
                     target_context = {}
                     target_context[:target_md5] = target_md5
                     target_context[:potential_hit_target_cache_dirs] = potential_hit_target_cache_dirs
+                    target_context[:miss_dependency_list] = miss_dependency_list
                     if potential_hit_target_cache_dirs.size == 0
-                        puts "[ZABEL]<INFO> miss #{target.name} #{target_md5} in iteration #{iteration_count}"
+                        if miss_dependency_list.size > 0
+                            puts miss_dependency_list.uniq.join("\n")
+                        end
+                        puts "[ZABEL/I] miss #{target.name} #{target_md5} in iteration #{iteration_count}"
                         target_context[:target_status] = STATUS_MISS
                         miss_count = miss_count + 1
                     end
@@ -764,7 +771,7 @@ module Zabel
                         end
                     end
                     if hit_target_cache_dir
-                        puts "[ZABEL]<INFO> hit #{target.name} #{target_context[:target_md5]} in iteration #{iteration_count} potential #{potential_hit_target_cache_dirs.size}"
+                        puts "[ZABEL/I] hit #{target.name} #{target_context[:target_md5]} in iteration #{iteration_count} potential #{potential_hit_target_cache_dirs.size}"
                         target_context[:target_status] = STATUS_HIT
                         target_context[:hit_target_cache_dir] = hit_target_cache_dir
                         hit_count = hit_count + 1
@@ -788,7 +795,11 @@ module Zabel
                 else
                     unless target_context[:target_status] == STATUS_MISS
                         target_context[:target_status] = STATUS_MISS
-                        puts "[ZABEL]<INFO> miss #{target.name} #{target_context[:target_md5]} in iteration #{iteration_count}"
+                        miss_dependency_list = target_context[:miss_dependency_list]
+                        if miss_dependency_list.size > 0
+                            puts miss_dependency_list.uniq.join("\n")
+                        end
+                        puts "[ZABEL/I] miss #{target.name} #{target_context[:target_md5]} in iteration #{iteration_count}"
                         miss_count = miss_count + 1
                     end
                     zabel_inject_printenv(project, target)
@@ -806,12 +817,15 @@ module Zabel
             end
         end
 
-        puts "[ZABEL]<INFO> total #{hit_count + miss_count} hit #{hit_count} miss #{miss_count} iteration #{iteration_count}"
+        puts "[ZABEL/I] total #{hit_count + miss_count} hit #{hit_count} miss #{miss_count} iteration #{iteration_count}"
     
-        puts "[ZABEL]<INFO> duration = #{(Time.now - start_time).to_i} s in stage pre"
+        puts "[ZABEL/I] duration = #{(Time.now - start_time).to_i} s in stage pre"
     end
     
     def self.zabel_extract
+        puts "[ZABEL/D] #{Time.now.to_f.to_s}"
+        start_time = Time.now
+
         target_cache_dir = ARGV[1]
         
         cache_product_path = target_cache_dir + "/#{FILE_NAME_PRODUCT}"
@@ -843,6 +857,9 @@ module Zabel
             puts command
             raise unless system command
         end 
+
+        puts "[ZABEL/I] duration = #{(Time.now - start_time).to_i} s in stage extract"
+        puts "[ZABEL/D] #{Time.now.to_f.to_s}"
     end
     
     def self.zabel_printenv
@@ -861,11 +878,6 @@ module Zabel
     end
     
     def self.zabel_clean
-        if File.exist? "Pods/zabel.xcodeproj"
-            command = "rm -rf Pods/*.xcodeproj"
-            puts command
-            raise unless system command
-        end
         zabel_clean_temp_files
     end
 
