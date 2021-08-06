@@ -291,7 +291,7 @@ module Zabel
     
         source_md5_list = []
         # zabel built-in verison, which will be changed for incompatibility in the future
-        source_md5_list.push "Zabel version : #{Zabel::VERSION}"
+        source_md5_list.push "Zabel cache version : #{Zabel::CACHE_VERSION}"
         source_md5_list.push "ARGV : #{key_argv.to_s}"
     
         # TODO: to get a explicit spec name from a target. 
