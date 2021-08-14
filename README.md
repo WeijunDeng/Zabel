@@ -97,6 +97,7 @@ Zabel detects module map dependecy by default. However, there are bugs of xcodeb
 
 ## Changelog
 
+- 1.0.4 optimize spec checksums; optimize output log; use CACHE_VERSION; should not cache if dependency error
 - 1.0.3 support bundle install
 - 1.0.2 support legacy build system
 - 1.0.1 support xcodebuild archive and fastlane
