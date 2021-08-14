@@ -38,19 +38,25 @@ target app_name do
 
     pod 'AFNetworking'
     pod 'Alamofire' if not test_options.include? "use_modular_headers"
+    pod 'AMScrollingNavbar'
     pod 'Aspects'
     pod 'BarcodeScanner'
     pod 'BlocksKit'
+    pod 'BulletinBoard'
+    pod 'Cartography'
+    pod 'Charts'
     pod 'CocoaAsyncSocket'
     pod 'CocoaLumberjack'
     pod 'CoconutKit'
+    pod 'CryptoSwift'
     pod 'DropDown'
     pod 'Eureka'
+    pod 'FBAEMKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
     pod 'FBMemoryProfiler'
     pod 'FBRetainCycleDetector'
-    pod 'FBSDKCoreKit' if test_options.include? "use_frameworks_" or not test_options.include? "generate_multiple_pod_projects" 
-    pod 'FBSDKLoginKit' if test_options.include? "use_frameworks_" or not test_options.include? "generate_multiple_pod_projects" 
-    pod 'FBSDKShareKit' if test_options.include? "use_frameworks_" or not test_options.include? "generate_multiple_pod_projects" 
+    pod 'FBSDKCoreKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
+    pod 'FBSDKGamingServicesKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
+    pod 'FBSDKLoginKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
     pod 'Firebase/Analytics' if not test_options.include? "use_modular_headers"
     pod 'Firebase/Auth' if not test_options.include? "use_modular_headers"
     pod 'Firebase/Crashlytics' if not test_options.include? "use_modular_headers"
@@ -60,16 +66,23 @@ target app_name do
     pod 'FLEX'
     pod 'FMDB'
     pod 'FSCalendar'
+    pod 'FSPagerView'
     pod 'GrowingAutoTrackKit'
     pod 'GrowingCoreKit'
     pod 'IFTTTConnectSDK'
+    pod 'Instructions'
     pod 'IQKeyboardManager'
     pod 'JRSwizzle'
+    pod 'JTAppleCalendar'
     pod 'JWT'
+    pod 'KeychainAccess'
     pod 'Kingfisher'
     pod 'lottie-ios'
+    pod 'LTMorphingLabel'
+    pod 'Macaw'
     pod 'Masonry'
     pod 'Material'
+    pod 'MessageKit'
     pod 'MJRefresh'
     pod 'MLeaksFinder'
     pod 'MMKV'
@@ -77,27 +90,45 @@ target app_name do
     pod 'MTAppenderFile'
     pod 'MTHawkeye'
     pod 'Nimble'
+    pod 'Nuke'
+    pod 'NVActivityIndicatorView'
     pod 'ObjectMapper'
+    pod 'OHHTTPStubs'
     pod 'PhoneNumberKit'
     pod 'PromiseKit' if not test_options.include? "use_modular_headers"
     pod 'QMUIKit'
+    pod 'Quick'
+    pod 'R.swift'
+    pod 'ReachabilitySwift'
     pod 'ReactiveObjC'
     pod 'Realm'
     pod 'RealmSwift' if test_options.include? "use_frameworks_"
+    pod 'ReSwift'
     pod 'RxCocoa'
     pod 'RxSwift' if not test_options.include? "use_modular_headers"
     pod 'SDWebImage'
     pod 'Sentry'
+    pod 'SideMenu'
     pod 'SkeletonView'
     pod 'SnapKit'
     pod 'Sourcery'
+    pod 'SQLite.swift'
     pod 'Starscream'
+    pod 'Surge'
     pod 'SVProgressHUD'
+    pod 'SwiftDate'
+    pod 'SwiftEntryKit'
     pod 'SwifterSwift'
     pod 'SwiftMessages'
+    pod 'SwiftNIO' if test_options.include? "use_modular_headers"
+    pod 'SwiftyBeaver'
     pod 'SwiftyJSON'
+    pod 'SwiftyStoreKit'
+    pod 'SwipeCellKit'
     pod 'TensorFlowLiteTaskText' if not ((test_options.include? "use_frameworks_" or test_options.include? "use_modular_headers") and test_options.include? "generate_multiple_pod_projects")
+    pod 'TextFieldEffects'
     pod 'Texture'
+    pod 'ViewAnimator'
     pod 'YYCache'
     pod 'YYImage'
     pod 'YYImage/WebP'
