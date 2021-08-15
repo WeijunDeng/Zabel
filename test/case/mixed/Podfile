@@ -54,9 +54,6 @@ target app_name do
     pod 'FBAEMKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
     pod 'FBMemoryProfiler'
     pod 'FBRetainCycleDetector'
-    pod 'FBSDKCoreKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
-    pod 'FBSDKGamingServicesKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
-    pod 'FBSDKLoginKit' if not test_options.include? "generate_multiple_pod_projects" and not test_options.include? "use_modular_headers"
     pod 'Firebase/Analytics' if not test_options.include? "use_modular_headers"
     pod 'Firebase/Auth' if not test_options.include? "use_modular_headers"
     pod 'Firebase/Crashlytics' if not test_options.include? "use_modular_headers"

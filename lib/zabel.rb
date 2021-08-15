@@ -725,7 +725,7 @@ module Zabel
                 if zabel_can_cache_target(target)
                     source_files = zabel_get_target_source_files(target)
                     unless source_files.size >= zabel_get_min_source_file_count
-                        puts "[ZABEL/I] skip #{target.name} #{source_files.size} >= #{zabel_get_min_source_file_count}"
+                        puts "[ZABEL/I] skip #{target.name} #{source_files.size} < #{zabel_get_min_source_file_count}"
                         next
                     end
                     target_md5_content = zabel_get_target_md5_content(project, target, configuration_name, argv, source_files)
