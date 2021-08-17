@@ -256,15 +256,13 @@ module Zabel
         target_configuration = target.build_configurations.detect { | config | config.name == configuration_name}
         target_configuration_content = target_configuration.pretty_print.to_yaml
         target_xcconfig = ""
-        target_spec_name = ""
         if target_configuration.base_configuration_reference
             config_file_path = target_configuration.base_configuration_reference.real_path.to_s
-            target_spec_name = File.basename(File.dirname(config_file_path))
             if File.exist? config_file_path
                 target_xcconfig = File.read(config_file_path).lines.reject{|line|line.include? "_SEARCH_PATHS"}.sort.join("")
             end
         end
-    
+
         first_configuration = []
         build_phases = []
         build_phases.push target.source_build_phase if target.methods.include? :source_build_phase
@@ -300,11 +298,29 @@ module Zabel
         source_md5_list.push "ARGV : #{key_argv.to_s}"
     
         # TODO: to get a explicit spec name from a target. 
-        if target_spec_name.size > 0 and $zabel_podfile_spec_checksums.has_key? target_spec_name
-            source_md5_list.push "SPEC CHECKSUM : #{target_spec_name} #{$zabel_podfile_spec_checksums[target_spec_name]}"
-            has_found_checksum = true
-        else
-            puts "[ZABEL/E] #{target.name} #{target_spec_name} SPEC CHECKSUM should be found"
+        target_possible_spec_names = []
+        target_possible_spec_names.push target_configuration.build_settings["PRODUCT_NAME"] if target_configuration.build_settings["PRODUCT_NAME"]
+        target_possible_spec_names.push target_configuration.build_settings["IBSC_MODULE"] if target_configuration.build_settings["IBSC_MODULE"]
+        target_possible_spec_names.push File.basename(target_configuration.build_settings["CONFIGURATION_BUILD_DIR"]) if target_configuration.build_settings["CONFIGURATION_BUILD_DIR"]
+        if target_xcconfig.lines.detect { | line | line.start_with? "CONFIGURATION_BUILD_DIR = "}
+            target_possible_spec_names.push File.basename(target_xcconfig.lines.detect { | line | line.start_with? "CONFIGURATION_BUILD_DIR = "}.strip)
+        end
+        if target_xcconfig.lines.detect { | line | line.start_with? "PODS_TARGET_SRCROOT = "}
+            target_possible_spec_names.push File.basename(target_xcconfig.lines.detect { | line | line.start_with? "PODS_TARGET_SRCROOT = "}.strip)
+        end
+
+        target_match_spec_names = []
+        target_possible_spec_names.uniq.sort.each do | spec_name |
+            if spec_name.size > 0 and $zabel_podfile_spec_checksums.has_key? spec_name
+                source_md5_list.push "SPEC CHECKSUM : #{spec_name} #{$zabel_podfile_spec_checksums[spec_name]}"
+                target_match_spec_names.push spec_name
+            end
+        end
+        
+        unless target_match_spec_names.size == 1
+            puts "[ZABEL/E] #{target.name} #{target_possible_spec_names.to_s} #{target_match_spec_names.to_s} SPEC CHECKSUM should be found"
+            puts target_configuration.build_settings.to_s
+            puts target_xcconfig
         end
     
         source_md5_list.push "Project : #{File.basename(project.path)}"
