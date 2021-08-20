@@ -1,6 +1,7 @@
 require 'pathname'
 require 'open3'
 require 'yaml'
+require 'json'
 
 def system_cmd(cmd)
     puts cmd
@@ -59,7 +60,7 @@ def zabel_test(podfiles)
     cache_root = Dir.pwd + "/cache"
     system_cmd "rm -rf \"#{cache_root}\""
 
-    all_build_options = ["xcodebuild", "fastlane"].product(["", "archive"], ["", "derived_data_path"], ["", "modern_build_system"]).map{|options|options.select{|option|option.size>0}.join(",")}
+    all_build_options = ["xcodebuild", "fastlane"].product(["build_app", "archive_app", "build_library"], ["", "derived_data_path"], ["", "modern_build_system"]).map{|options|options.select{|option|option.size>0}.join(",")}
 
     all_pod_options = ["", "use_modular_headers"].product(["", "generate_multiple_pod_projects"], ["", "precompile_prefix_header"], ["", "use_frameworks_static", "use_frameworks_dynamic"]).map{|options| options.select{|option|option.size>0}.join(",")}
 
@@ -76,6 +77,7 @@ def zabel_test(podfiles)
                 system_cmd "rm -rf \"#{Dir.home}/Library/Developer/Xcode/DerivedData\""
                 
                 first_size = 0
+                build_library_shceme = ""
                 all_cache_options.each do | cache_option |
                     test_count = test_count + 1
                     timestamp = (Time.now.to_f * 1000).to_i.to_s
@@ -100,9 +102,13 @@ def zabel_test(podfiles)
 
                     log_path = "#{workspace}/log-#{timestamp}.log"
                     build_path = "#{workspace}/build-#{timestamp}"
-                    app_path = "#{build_path}/Build/Products/Debug-iphonesimulator/app.app"
+                    app_suffix = "app.app"
+                    if build_option.include? "build_library"
+                        app_suffix = ""
+                    end
+                    app_path = "#{build_path}/Build/Products/Debug-iphonesimulator/#{app_suffix}"
                     if build_option.include? "archive"
-                        app_path = "#{build_path}/app.xcarchive/Products/Applications/app.app"
+                        app_path = "#{build_path}/app.xcarchive/Products/Applications/#{app_suffix}"
                     end
                     system_cmd "rm -rf \"#{build_path}\""
                     if build_option.include? "xcodebuild"
@@ -110,17 +116,36 @@ def zabel_test(podfiles)
                         if build_option.include? "derived_data_path"
                             derived_data_path = "-derivedDataPath \"#{build_path}\""
                         end
-                        archive_path = ""
-                        build = "clean build"
-                        if build_option.include? "archive"
-                            archive_path = "-archivePath \"#{build_path}/app.xcarchive\""
-                            build = "archive"
-                        end
                         modern_build_system = "-UseModernBuildSystem=NO"
                         if build_option.include? "modern_build_system"
                             modern_build_system = "-UseModernBuildSystem=YES"
                         end
-                        system_cmd "cd \"#{workspace}\" && export ZABEL_CACHE_ROOT=\"#{cache_root}\" && #{prefix} xcodebuild #{build} -workspace app.xcworkspace -scheme app -configuration Debug -arch x86_64 -sdk iphonesimulator #{derived_data_path} #{archive_path} #{modern_build_system} &> \"#{log_path}\""
+
+                        archive_path = ""
+                        build = "clean build"
+                        scheme = "app"
+                        if build_option.include? "archive_app"
+                            archive_path = "-archivePath \"#{build_path}/app.xcarchive\""
+                            build = "archive"
+                        elsif build_option.include? "build_library"
+                            unless build_library_shceme.size > 0
+                                cmd = "cd \"#{workspace}\" && xcodebuild -workspace app.xcworkspace -list -json"
+                                puts cmd
+                                scheme_json_result = Open3.capture3(cmd)
+                                raise "list scheme should not fail" unless scheme_json_result[2] == 0
+                                
+                                scheme_json = JSON.parse(scheme_json_result[0])
+                                schemes = scheme_json["workspace"]["schemes"].select{|s|not s.start_with? "app" and not s.start_with? "Pods"}
+                                puts schemes
+                                build_library_shceme = schemes.shuffle[0]
+                            end
+                            scheme = build_library_shceme
+                        elsif build_option.include? "build_app"
+                        else
+                            raise
+                        end
+
+                        system_cmd "cd \"#{workspace}\" && export ZABEL_CACHE_ROOT=\"#{cache_root}\" && #{prefix} xcodebuild #{build} -workspace app.xcworkspace -scheme #{scheme} -configuration Debug -arch x86_64 -sdk iphonesimulator #{derived_data_path} #{archive_path} #{modern_build_system} &> \"#{log_path}\""
                     elsif build_option.include? "fastlane"
                         derived_data_path = ""
                         if build_option.include? "derived_data_path"
@@ -128,9 +153,12 @@ def zabel_test(podfiles)
                         end
                         archive_path = ""
                         skip_archive = "--skip_archive"
-                        if build_option.include? "archive"
+                        if build_option.include? "archive_app"
                             archive_path = "--archive_path \"#{build_path}/app.xcarchive\""
                             skip_archive = ""
+                        elsif build_option.include? "build_app"
+                        else
+                            raise
                         end
                         modern_build_system = "-UseModernBuildSystem=NO"
                         if build_option.include? "modern_build_system"
@@ -159,7 +187,7 @@ def zabel_test(podfiles)
                         raise "build log should not include [ZABEL/E]"
                     end
 
-                    if cache_option == "cache_all2"
+                    if cache_option == "cache_all2" and not build_option.include? "build_library"
                         unless log_content.include? " miss 0 "
                             raise "build log should include miss 0"
                         end
@@ -168,15 +196,13 @@ def zabel_test(podfiles)
                     if build_option.include? "archive" or build_option.include? "derived_data_path"
                         if first_size == 0
                             first_size = Open3.capture3("du -s \"#{app_path}\"")[0].strip.to_i
-                            puts first_size
                             unless first_size > 0
                                 raise "build app size should not empty"
                             end
                         else
                             size = Open3.capture3("du -s \"#{app_path}\"")[0].strip.to_i
-                            puts size
                             unless size == first_size
-                                raise "build app size should equal to first"
+                                raise "build app size #{size} should equal to first #{first_size}"
                             end
                         end
                     end

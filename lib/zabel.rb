@@ -23,6 +23,7 @@ module Zabel
 
     STATUS_HIT = "hit"
     STATUS_MISS = "miss"
+    STATUS_MISS_AND_READY = "miss_ready"
 
     STAGE_CLEAN = "clean"
     STAGE_EXTRACT = "extract"
@@ -130,15 +131,19 @@ module Zabel
                 file = file.gsub("\\ ", " ")
     
                 unless File.exist? file
-                    puts "[ZABEL/E] #{target.name} #{file} should exist in dependency file #{dependency_file}"
+                    puts "[ZABEL/E] #{target.name} #{file} should exist in dependency file #{dependency_file} in #{intermediate_dir}/**/*.d"
                     return []
                 end
     
                 if file.start_with? intermediate_dir + "/" or 
-                    file.start_with? product_dir + "/" or
-                    file.start_with? xcframeworks_build_dir + "/"
+                    file.start_with? product_dir + "/"
                     next
                 end
+
+                if xcframeworks_build_dir.size > 0 and file.start_with? xcframeworks_build_dir + "/"
+                    next
+                end
+
     
                 dependency_files.push file
             end
@@ -475,8 +480,18 @@ module Zabel
                 end
                 if zabel_can_cache_target(target)
                     target_context = YAML.load(File.read(target_context_file))
-                
-                    if target_context[:target_status] == STATUS_MISS
+
+                    if target_context[:target_status] == STATUS_MISS_AND_READY
+                        environment_valid = true
+                        [BUILD_KEY_SYMROOT, BUILD_KEY_CONFIGURATION_BUILD_DIR, BUILD_KEY_OBJROOT, BUILD_KEY_TARGET_TEMP_DIR, BUILD_KEY_SRCROOT, BUILD_KEY_FULL_PRODUCT_NAME].sort.each do | key |
+                            unless target_context.has_key? key and target_context[key] and target_context[key].size > 0
+                                puts "[ZABEL/E] #{target.name} should have #{key} in #{target_context.to_s}"
+                                environment_valid = false
+                                break
+                            end
+                        end
+                        next unless environment_valid
+
                         source_files = zabel_get_target_source_files(target)
     
                         product_dir = target_context[BUILD_KEY_CONFIGURATION_BUILD_DIR]
@@ -526,7 +541,7 @@ module Zabel
             project.native_targets.each do | target |
                 if post_targets_context.has_key? target
                     target_context = post_targets_context[target]
-                    next unless target_context[:target_status] == STATUS_MISS
+                    next unless target_context[:target_status] == STATUS_MISS_AND_READY
     
                     dependency_targets_set = Set.new
                     implicit_dependencies = []
@@ -862,6 +877,13 @@ module Zabel
     
         start_time = Time.now
 
+        [BUILD_KEY_SYMROOT, BUILD_KEY_CONFIGURATION_BUILD_DIR, BUILD_KEY_OBJROOT, BUILD_KEY_TARGET_TEMP_DIR, BUILD_KEY_SRCROOT, BUILD_KEY_FULL_PRODUCT_NAME].sort.each do | key |
+            unless ENV.has_key? key and ENV[key] and ENV[key].size > 0
+                raise "[ZABEL/E] #{target.name} should have #{key}"
+                break
+            end
+        end
+
         if ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR] != ENV[BUILD_KEY_TARGET_BUILD_DIR]
             command = "mkdir -p \"#{ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR]}\" && cd \"#{File.dirname(ENV[BUILD_KEY_CONFIGURATION_BUILD_DIR])}/\" && tar -xf \"#{cache_product_path}\""
             puts command
@@ -893,6 +915,7 @@ module Zabel
     end
     
     def self.zabel_printenv
+        puts ARGV.to_s
         target_name = ARGV[1]
         project_path = ARGV[2]
         
@@ -904,6 +927,7 @@ module Zabel
                 target_context[key] = ENV[key]
             end
         end
+        target_context[:target_status] = STATUS_MISS_AND_READY
         File.write("#{project_path}/#{target_name}.#{FILE_NAME_TARGET_CONTEXT}", target_context.to_yaml)
     end
     

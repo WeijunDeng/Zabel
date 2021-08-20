@@ -15,6 +15,8 @@ elsif ARGV[0] == Zabel::STAGE_POST
 elsif ARGV.include?("-configuration") or ARGV.include?("--configuration")
     total_start_time = Time.now
 
+    puts ARGV.to_s
+    
     Zabel::zabel_pre(ARGV)
 
     build_start_time = Time.now
