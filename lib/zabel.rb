@@ -140,7 +140,7 @@ module Zabel
                     next
                 end
 
-                if xcframeworks_build_dir.size > 0 and file.start_with? xcframeworks_build_dir + "/"
+                if xcframeworks_build_dir and xcframeworks_build_dir.size > 0 and file.start_with? xcframeworks_build_dir + "/"
                     next
                 end
 
