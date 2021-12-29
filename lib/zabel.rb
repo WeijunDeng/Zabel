@@ -273,7 +273,7 @@ module Zabel
         build_phases.push target.source_build_phase if target.methods.include? :source_build_phase
         build_phases.push target.resources_build_phase if target.methods.include? :resources_build_phase
         build_phases.each do | build_phase |
-            target.source_build_phase.files_references.each do | files_reference |
+            build_phase.files_references.each do | files_reference |
                 files_reference.build_files.each do |build_file|
                     if build_file.settings and build_file.settings.class == Hash
                         first_configuration.push File.basename(build_file.file_ref.real_path.to_s) + "\n" + build_file.settings.to_yaml
